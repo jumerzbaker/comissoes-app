@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Comissões App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--s1:#181c27;--s2:#1e2335;--s3:#242840;--bdr:rgba(255,255,255,0.07);--bdr2:rgba(255,255,255,0.13);--txt:#e8eaf0;--muted:#7a8099;--accent:#00d4a0;--blue:#0099ff;--warn:#f5a623;--danger:#ff5c5c;--r:10px;--rlg:14px;--nav-h:60px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:4px}
+.shell{display:flex;height:100vh;height:100dvh;overflow:hidden}
+.sidebar{width:220px;min-width:220px;background:var(--s1);border-right:1px solid var(--bdr);display:flex;flex-direction:column;flex-shrink:0}
+.logo{padding:20px 20px 16px;border-bottom:1px solid var(--bdr)}
+.logo-mark{font-size:18px;font-weight:600;letter-spacing:-.5px}
+.logo-mark span{color:var(--accent)}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+.sidebar-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-sec{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.08em;padding:12px 12px 4px;text-transform:uppercase}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;color:var(--muted);font-size:13px;font-weight:400;border:none;background:none;width:100%;text-align:left;transition:all .15s;font-family:'DM Sans',sans-serif}
+.nav-btn:hover{background:var(--s2);color:var(--txt)}
+.nav-btn.active{background:rgba(0,212,160,.1);color:var(--accent);font-weight:500}
+.nav-btn svg{opacity:.7;flex-shrink:0;width:15px;height:15px}
+.nav-btn.active svg{opacity:1}
+.sidebar-foot{padding:14px;border-top:1px solid var(--bdr)}
+.sidebar-foot p{font-size:11px;color:var(--muted);line-height:1.6}
+.firebase-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--accent);background:rgba(0,212,160,.08);border:1px solid rgba(0,212,160,.2);border-radius:20px;padding:3px 8px;margin-top:6px}
+.firebase-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+.page{padding:28px 32px;max-width:1100px;width:100%}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--s1);border-top:1px solid var(--bdr);z-index:100;padding:0 4px;align-items:stretch}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--muted);font-size:10px;font-family:'DM Sans',sans-serif;cursor:pointer;border-radius:var(--r);transition:all .15s;padding:6px 2px}
+.bnav-item svg{width:20px;height:20px;flex-shrink:0;stroke:currentColor}
+.bnav-item.active{color:var(--accent)}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px}
+.page-title{font-size:20px;font-weight:600;letter-spacing:-.4px}
+.page-sub{font-size:13px;color:var(--muted);margin-top:2px}
+.page-header-actions{display:flex;gap:8px;flex-shrink:0}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--rlg);padding:16px 18px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.green::before{background:var(--accent)}
+.kpi.blue::before{background:var(--blue)}
+.kpi.warn::before{background:var(--warn)}
+.kpi.neutral::before{background:var(--muted)}
+.kpi-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:500;margin-bottom:6px}
+.kpi-val{font-size:20px;font-weight:600;letter-spacing:-.5px;font-family:'DM Mono',monospace;word-break:break-all}
+.kpi.green .kpi-val{color:var(--accent)}
+.kpi.blue .kpi-val{color:var(--blue)}
+.kpi.warn .kpi-val{color:var(--warn)}
+.card{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--rlg);margin-bottom:14px;overflow:hidden}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bdr)}
+.card-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+th{padding:10px 14px;text-align:left;color:var(--muted);font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--bdr);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--bdr);color:var(--txt);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .1s}
+tbody tr:hover td{background:var(--s2)}
+.m-card-list{display:none;flex-direction:column;gap:10px;padding:12px}
+.m-card{background:var(--s2);border:1px solid var(--bdr);border-radius:var(--r);padding:14px}
+.m-card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.m-card-row:last-child{margin-bottom:0}
+.m-card-label{font-size:11px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.bg{background:rgba(0,212,160,.12);color:var(--accent);border:1px solid rgba(0,212,160,.2)}
+.bw{background:rgba(245,166,35,.12);color:var(--warn);border:1px solid rgba(245,166,35,.2)}
+.bb{background:rgba(0,153,255,.12);color:var(--blue);border:1px solid rgba(0,153,255,.2)}
+.bm{background:rgba(122,128,153,.1);color:var(--muted);border:1px solid rgba(122,128,153,.15)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--bdr2);background:var(--s2);color:var(--txt);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;-webkit-appearance:none}
+.btn:hover{background:var(--s3)}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#001a12;border-color:var(--accent)}
+.btn-primary:hover{background:#00bf91}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger{color:var(--danger);border-color:rgba(255,92,92,.25)}
+.btn-danger:hover{background:rgba(255,92,92,.08)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--muted);padding:5px 8px}
+.btn-ghost:hover{background:var(--s2);color:var(--txt)}
+.btn-full{width:100%;padding:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.fab{display:none;position:fixed;bottom:calc(var(--nav-h) + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#001a12;border:none;font-size:24px;cursor:pointer;z-index:90;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,212,160,.3);font-weight:300;transition:transform .15s}
+.fab:active{transform:scale(.92)}
+.chart-wrap{padding:16px 16px 8px;height:180px;display:flex;align-items:flex-end;gap:4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+.bar-vl{font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+.bar-body{width:100%;border-radius:4px 4px 0 0;transition:height .4s cubic-bezier(.4,0,.2,1)}
+.bar-mo{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace}
+.form-row{display:flex;gap:12px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
+.form-group label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+input,select{padding:10px 12px;border:1px solid var(--bdr2);border-radius:var(--r);font-size:14px;background:var(--s2);color:var(--txt);font-family:'DM Sans',sans-serif;outline:none;width:100%;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+input::placeholder{color:var(--muted)}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,160,.1)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a8099'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+select option{background:#1e2335}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:200;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--bdr2);border-radius:var(--rlg) var(--rlg) 0 0;padding:20px 20px 32px;width:100%;max-width:520px;max-height:90dvh;overflow-y:auto;animation:slide-up .25s cubic-bezier(.4,0,.2,1)}
+@keyframes slide-up{from{transform:translateY(100%)}to{transform:none}}
+.modal-drag{width:40px;height:4px;background:var(--bdr2);border-radius:4px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:18px;letter-spacing:-.3px}
+.modal-actions{display:flex;flex-direction:column;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--bdr)}
+.calc-box{background:rgba(0,212,160,.06);border:1px solid rgba(0,212,160,.15);border-radius:var(--r);padding:12px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.calc-box strong{color:var(--accent);font-family:'DM Mono',monospace;font-size:16px}
+.calc-detail{font-size:11px;color:var(--muted);margin-bottom:12px;padding:0 2px}
+.tabs{display:flex;border-bottom:1px solid var(--bdr);margin-bottom:18px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 16px;font-size:13px;cursor:pointer;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;transition:all .15s;margin-bottom:-1px;white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.rank-list{padding:4px 0}
+.rank-item{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--bdr)}
+.rank-item:last-child{border-bottom:none}
+.rank-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;font-family:'DM Mono',monospace}
+.rank-area{flex:1;min-width:0}
+.rank-name{font-size:13px;font-weight:500;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rank-name span{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);flex-shrink:0}
+.rank-track{background:rgba(255,255,255,.05);border-radius:4px;height:5px;overflow:hidden}
+.rank-fill{height:5px;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.rep-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rep-tbl{min-width:900px;font-size:12px}
+.rep-tbl td{text-align:right;font-family:'DM Mono',monospace}
+.rep-tbl td:first-child{text-align:left;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--muted);font-weight:500;white-space:nowrap}
+.rep-tbl .tc{color:var(--accent);font-weight:500}
+.rep-tbl th.tc{color:var(--accent)}
+.toast{position:fixed;bottom:calc(var(--nav-h) + 16px);left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid rgba(0,212,160,.3);border-left:3px solid var(--accent);border-radius:var(--r);padding:11px 18px;font-size:13px;z-index:400;white-space:nowrap;animation:toast-in .3s ease;pointer-events:none}
+@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+/* loading screen */
+.loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;gap:16px}
+.loading-screen .logo-mark{font-size:28px;font-weight:600}
+.spinner{width:28px;height:28px;border:2px solid var(--bdr2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-screen p{font-size:13px;color:var(--muted)}
+.sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite;margin-right:5px}
+.error-banner{background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.25);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--danger);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.mono{font-family:'DM Mono',monospace}
+.green{color:var(--accent)}
+.warn{color:var(--warn)}
+.blue{color:var(--blue)}
+.muted{color:var(--muted)}
+.fw5{font-weight:500}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+@media(max-width:720px){
+  .sidebar{display:none}
+  .bottom-nav{display:flex}
+  .fab{display:flex}
+  .page{padding:16px 14px 80px}
+  .page-title{font-size:18px}
+  .page-header{margin-bottom:16px}
+  .page-header-actions .btn{display:none}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .kpi-val{font-size:17px}
+  .show-mobile{display:flex!important}
+  .hide-mobile{display:none!important}
+  .form-row{flex-direction:column;gap:10px}
+  .toast{bottom:calc(var(--nav-h) + 12px);font-size:12px;padding:9px 14px}
+}
+@media(min-width:721px){
+  .overlay{align-items:center}
+  .modal{border-radius:var(--rlg);padding:24px;max-height:85vh}
+  .modal-drag{display:none}
+  .modal-actions{flex-direction:row;justify-content:flex-end}
+  .modal-actions .btn-full{width:auto}
+  .toast{bottom:24px}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div class="loading-screen" id="loading">
+  <div class="logo-mark">comissões<span style="color:var(--accent)">.</span></div>
+  <div class="spinner"></div>
+  <p>Conectando ao Firebase...</p>
+</div>
+
+<div class="shell" id="app" style="display:none">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">comissões<span>.</span></div>
+      <div class="logo-sub">v2.0 · tempo real</div>
+      <div class="firebase-badge"><span class="firebase-dot"></span>Firebase ativo</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-sec">Principal</div>
+      <button class="nav-btn active" data-page="dashboard" onclick="goPage('dashboard',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-btn" data-page="vendas" onclick="goPage('vendas',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Controle de vendas
+      </button>
+      <div class="nav-sec">Configurações</div>
+      <button class="nav-btn" data-page="vendedores" onclick="goPage('vendedores',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Vendedores
+      </button>
+      <button class="nav-btn" data-page="comissoes" onclick="goPage('comissoes',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Tipos de comissão
+      </button>
+      <div class="nav-sec">Análise</div>
+      <button class="nav-btn" data-page="relatorios" onclick="goPage('relatorios',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Relatórios
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <p>Dados sincronizados em tempo real para todos os dispositivos.</p>
+    </div>
+  </aside>
+  <main class="content" id="content"></main>
+</div>
+
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bnav-item active" data-page="dashboard" onclick="goPage('dashboard',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Início
+  </button>
+  <button class="bnav-item" data-page="vendas" onclick="goPage('vendas',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Vendas
+  </button>
+  <button class="bnav-item" data-page="vendedores" onclick="goPage('vendedores',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    Equipe
+  </button>
+  <button class="bnav-item" data-page="relatorios" onclick="goPage('relatorios',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Relatórios
+  </button>
+  <button class="bnav-item" data-page="comissoes" onclick="goPage('comissoes',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Comissões
+  </button>
+</nav>
+
+<button class="fab" id="fab" onclick="fabAction()">+</button>
+
+<!-- Modal: Nova Venda -->
+<div class="overlay" id="modal-venda" onclick="bgClose(event,'modal-venda')">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">Registrar venda</div>
+    <div class="form-row">
+      <div class="form-group"><label>Data</label><input type="date" id="f-data"></div>
+      <div class="form-group"><label>Vendedor</label><select id="f-vendedor" onchange="calcVenda()"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Produto</label><input type="text" id="f-produto" placeholder="Nome do produto" oninput="calcVenda()"></div>
+      <div class="form-group"><label>Valor (R$)</label><input type="number" id="f-valor" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcVenda()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Tipo de comissão</label><select id="f-tipo" onchange="calcVenda()"></select></div>
+      <div class="form-group"><label>Status</label><select id="f-status"><option>A Pagar</option><option>Pago</option></select></div>
+    </div>
+    <div class="calc-box"><span>Comissão calculada</span><strong id="f-calc-val">R$ 0,00</strong></div>
+    <div class="calc-detail" id="f-calc-det"></div>
+    <div class="modal-actions">
+      <button class="btn btn-full" onclick="closeOverlay('modal-venda')">Cancelar</button>
+      <button class="btn btn-primary btn-full" id="btn-salvar-venda" onclick="salvarVenda()">Registrar venda</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Vendedor -->
+<div class="overlay" id="modal-vendedor" onclick="bgClose(event,'modal-vendedor')">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title" id="mv-title">Novo vendedor</div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome completo</label><input type="text" id="mv-nome" placeholder="Ex: Ana Silva"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>E-mail</label><input type="email" id="mv-email" placeholder="ana@empresa.com" autocomplete="email"></div>
+      <div class="form-group"><label>Telefone</label><input type="tel" id="mv-tel" placeholder="(11) 9xxxx-xxxx"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-full" onclick="closeOverlay('modal-vendedor')">Cancelar</button>
+      <button class="btn btn-primary btn-full" id="btn-salvar-vend" onclick="salvarVendedor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Comissão -->
+<div class="overlay" id="modal-comissao" onclick="bgClose(event,'modal-comissao')">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title" id="mc-title">Novo tipo de comissão</div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome do tipo</label><input type="text" id="mc-nome" placeholder="Ex: Recorrência"></div>
+      <div class="form-group"><label>% Padrão</label><input type="number" id="mc-pct" placeholder="10" step="0.1" min="0" max="100" inputmode="decimal"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Produto específico (opcional)</label><input type="text" id="mc-prod" placeholder="Deixe vazio para todos"></div>
+      <div class="form-group"><label>% por produto (opcional)</label><input type="number" id="mc-pctprod" placeholder="—" step="0.1" inputmode="decimal"></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Define % especial para um produto dentro deste tipo.</p>
+    <div class="modal-actions">
+      <button class="btn btn-full" onclick="closeOverlay('modal-comissao')">Cancelar</button>
+      <button class="btn btn-primary btn-full" id="btn-salvar-com" onclick="salvarComissao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getFirestore, collection, doc,
+  addDoc, setDoc, updateDoc, deleteDoc,
+  onSnapshot, serverTimestamp, query, orderBy
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBIQTyUHhYTUBs00EQOvgasfOHxNf6Zl2Q",
+  authDomain: "comissoes-app-7064a.firebaseapp.com",
+  projectId: "comissoes-app-7064a",
+  storageBucket: "comissoes-app-7064a.firebasestorage.app",
+  messagingSenderId: "480959624314",
+  appId: "1:480959624314:web:bec454803181e5810237c3"
+};
+
+const fireApp = initializeApp(firebaseConfig);
+const db = getFirestore(fireApp);
+
+// ── State ──
+window._db = { vendedores:[], comissoes:[], vendas:[] };
+window._fs = { db, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy };
+let loaded = { v:false, c:false, s:false };
+
+function checkReady() {
+  if(loaded.v && loaded.c && loaded.s) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('bottom-nav').style.display = '';
+    window.render();
+  }
+}
+
+// ── Real-time listeners ──
+onSnapshot(query(collection(db,'vendedores'), orderBy('nome')), snap => {
+  window._db.vendedores = snap.docs.map(d=>({id:d.id,...d.data()}));
+  loaded.v = true; checkReady(); window.render && window.render();
+}, err => { console.error(err); showFbError(); });
+
+onSnapshot(query(collection(db,'comissoes'), orderBy('nome')), snap => {
+  window._db.comissoes = snap.docs.map(d=>({id:d.id,...d.data()}));
+  loaded.c = true; checkReady(); window.render && window.render();
+}, err => { console.error(err); showFbError(); });
+
+onSnapshot(query(collection(db,'vendas'), orderBy('data','desc')), snap => {
+  window._db.vendas = snap.docs.map(d=>({id:d.id,...d.data()}));
+  loaded.s = true; checkReady(); window.render && window.render();
+}, err => { console.error(err); showFbError(); });
+
+function showFbError() {
+  document.getElementById('loading').innerHTML = `
+    <div style="text-align:center;padding:24px;max-width:360px">
+      <div style="font-size:28px;font-weight:600;margin-bottom:12px">comissões<span style="color:var(--accent)">.</span></div>
+      <div style="color:var(--danger);font-size:14px;margin-bottom:8px">Erro ao conectar ao Firebase</div>
+      <div style="color:var(--muted);font-size:13px;line-height:1.6">Verifique se o Firestore Database foi criado no console do Firebase em <strong>modo de teste</strong>, e se está conectado à internet.</div>
+      <button onclick="location.reload()" style="margin-top:20px;padding:10px 24px;background:var(--accent);color:#001a12;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">Tentar novamente</button>
+    </div>`;
+}
+
+// ── Firestore actions exposed globally ──
+window._firestore = {
+  async addVendedor(data) {
+    return addDoc(collection(db,'vendedores'), data);
+  },
+  async updateVendedor(id, data) {
+    return updateDoc(doc(db,'vendedores',id), data);
+  },
+  async deleteVendedor(id) {
+    return deleteDoc(doc(db,'vendedores',id));
+  },
+  async addComissao(data) {
+    return addDoc(collection(db,'comissoes'), data);
+  },
+  async updateComissao(id, data) {
+    return updateDoc(doc(db,'comissoes',id), data);
+  },
+  async deleteComissao(id) {
+    return deleteDoc(doc(db,'comissoes',id));
+  },
+  async addVenda(data) {
+    return addDoc(collection(db,'vendas'), data);
+  },
+  async updateVendaStatus(id, status) {
+    return updateDoc(doc(db,'vendas',id), { status });
+  },
+  async deleteVenda(id) {
+    return deleteDoc(doc(db,'vendas',id));
+  }
+};
+
+// Timeout fallback se Firebase não responder
+setTimeout(() => {
+  if(!loaded.v && !loaded.c && !loaded.s) showFbError();
+}, 8000);
+</script>
+
+<script>
+// ── Helpers ──
+const R = v => `R$ ${(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const P = v => `${(+v||0).toFixed(1)}%`;
+const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const mo = v => { try{ return new Date((v.data||'')+'T12:00').getMonth()+1 }catch(e){return 0} };
+const isMobile = () => window.innerWidth <= 720;
+
+let curPage = 'dashboard';
+let relTab = 'geral';
+let relVend = null;
+let editVendId = null;
+let editComId = null;
+
+function getPct(tipo, produto) {
+  const db = window._db;
+  const esp = db.comissoes.find(c=>c.nome===tipo && c.prod && c.prod.toLowerCase()===(produto||'').toLowerCase() && c.pctP!=null);
+  if(esp) return {val:+esp.pctP, label:`% especial para "${produto}"`};
+  const base = db.comissoes.find(c=>c.nome===tipo);
+  return base ? {val:+base.pct, label:`% padrão — ${tipo}`} : {val:0, label:'Tipo não encontrado'};
+}
+
+// ── Nav ──
+window.goPage = function(page, el) {
+  curPage = page;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
+  const fabPages = ['vendas','vendedores','comissoes'];
+  const fab = document.getElementById('fab');
+  if(fab) fab.style.display = isMobile() && fabPages.includes(page) ? 'flex' : 'none';
+  render();
+};
+
+window.fabAction = function() {
+  if(curPage==='vendas') openModalVenda();
+  else if(curPage==='vendedores') openMV();
+  else if(curPage==='comissoes') openMC();
+};
+
+// ── Render ──
+window.render = function() {
+  const el = document.getElementById('content');
+  if(!el) return;
+  const map = {dashboard:pgDashboard, vendas:pgVendas, vendedores:pgVendedores, comissoes:pgComissoes, relatorios:pgRelatorios};
+  el.innerHTML = `<div class="page">${(map[curPage]||pgDashboard)()}</div>`;
+};
+
+// ── Pages ──
+function pgDashboard() {
+  const d = window._db;
+  const totV = d.vendas.reduce((a,v)=>a+(+v.valor||0),0);
+  const comPg = d.vendas.filter(v=>v.status==='Pago').reduce((a,v)=>a+(+v.com||0),0);
+  const comAr = d.vendas.filter(v=>v.status==='A Pagar').reduce((a,v)=>a+(+v.com||0),0);
+  const bars = months.map((_,i)=>d.vendas.filter(v=>mo(v)===i+1&&v.status==='Pago').reduce((a,v)=>a+(+v.com||0),0));
+  const mx = Math.max(...bars,1);
+  const recent = d.vendas.slice(0,5);
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Dashboard</div><div class="page-sub muted"><span class="sync-dot"></span>Sincronizado em tempo real</div></div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi blue"><div class="kpi-lbl">Total vendido</div><div class="kpi-val">${R(totV)}</div></div>
+    <div class="kpi green"><div class="kpi-lbl">Comissões pagas</div><div class="kpi-val">${R(comPg)}</div></div>
+    <div class="kpi warn"><div class="kpi-lbl">A receber</div><div class="kpi-val">${R(comAr)}</div></div>
+    <div class="kpi neutral"><div class="kpi-lbl">Qtd. vendas</div><div class="kpi-val">${d.vendas.length}</div></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Comissões pagas por mês</span></div>
+    <div class="chart-wrap">
+      ${bars.map((v,i)=>`<div class="bar-col">
+        <div class="bar-vl">${v>0?R(v):''}</div>
+        <div style="flex:1;display:flex;align-items:flex-end;width:100%">
+          <div class="bar-body" style="height:${v>0?Math.max(Math.round(v/mx*120),4):3}px;background:${v>0?'var(--accent)':'rgba(255,255,255,.05)'}"></div>
+        </div>
+        <div class="bar-mo">${months[i]}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Últimas vendas</span></div>
+    <div class="table-wrap hide-mobile">
+      <table><thead><tr><th>Data</th><th>Vendedor</th><th>Produto</th><th>Valor</th><th>Comissão</th><th>Status</th></tr></thead>
+      <tbody>${recent.length===0?`<tr><td colspan="6"><div class="empty-state">Nenhuma venda ainda.</div></td></tr>`:
+        recent.map(v=>`<tr>
+          <td class="mono muted" style="font-size:12px">${fmtDate(v.data)}</td>
+          <td class="fw5">${v.vendedor}</td><td>${v.produto}</td>
+          <td class="mono">${R(v.valor)}</td>
+          <td class="mono green fw5">${R(v.com)}</td>
+          <td><span class="badge ${v.status==='Pago'?'bg':'bw'}">${v.status}</span></td>
+        </tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div class="m-card-list show-mobile" style="display:none">
+      ${recent.length===0?`<div class="empty-state">Nenhuma venda ainda.</div>`:
+        recent.map(v=>`<div class="m-card">
+          <div class="m-card-row"><span class="fw5">${v.vendedor}</span><span class="badge ${v.status==='Pago'?'bg':'bw'}">${v.status}</span></div>
+          <div class="m-card-row"><span class="muted">${v.produto}</span><span class="mono green fw5">${R(v.com)}</span></div>
+          <div class="m-card-row"><span class="muted mono" style="font-size:11px">${fmtDate(v.data)}</span><span class="mono muted">${R(v.valor)}</span></div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function pgVendas() {
+  const d = window._db;
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Vendas</div><div class="page-sub muted">${d.vendas.length} registradas</div></div>
+    <div class="page-header-actions"><button class="btn btn-primary" onclick="openModalVenda()">+ Nova venda</button></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap hide-mobile">
+      <table><thead><tr><th>Data</th><th>Vendedor</th><th>Produto</th><th>Valor</th><th>Tipo</th><th>%</th><th>Comissão</th><th>Status</th><th></th></tr></thead>
+      <tbody>${d.vendas.length===0?`<tr><td colspan="9"><div class="empty-state">Nenhuma venda registrada.</div></td></tr>`:
+        d.vendas.map(v=>`<tr>
+          <td class="mono muted" style="font-size:12px">${fmtDate(v.data)}</td>
+          <td class="fw5">${v.vendedor}</td><td>${v.produto}</td>
+          <td class="mono">${R(v.valor)}</td>
+          <td><span class="badge bm" style="font-size:10px">${v.tipo}</span></td>
+          <td class="mono muted">${P(v.pct)}</td>
+          <td class="mono green fw5">${R(v.com)}</td>
+          <td><span class="badge ${v.status==='Pago'?'bg':'bw'}">${v.status}</span></td>
+          <td style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="toggleStatus('${v.id}','${v.status}')">${v.status==='Pago'?'Estornar':'Marcar pago'}</button><button class="btn btn-danger btn-sm" onclick="delVenda('${v.id}')">Excluir</button></td>
+        </tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div class="m-card-list show-mobile" style="display:none">
+      ${d.vendas.length===0?`<div class="empty-state">Nenhuma venda registrada.</div>`:
+        d.vendas.map(v=>`<div class="m-card">
+          <div class="m-card-row"><span class="fw5">${v.vendedor}</span><span class="badge ${v.status==='Pago'?'bg':'bw'}">${v.status}</span></div>
+          <div class="m-card-row"><span class="muted">${v.produto} · <span class="badge bm" style="font-size:10px">${v.tipo}</span></span><span class="mono green fw5">${R(v.com)}</span></div>
+          <div class="m-card-row"><span class="muted mono" style="font-size:11px">${fmtDate(v.data)} · ${P(v.pct)}</span><span class="mono" style="font-size:12px">${R(v.valor)}</span></div>
+          <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-sm" style="flex:1" onclick="toggleStatus('${v.id}','${v.status}')">${v.status==='Pago'?'Estornar':'Marcar pago'}</button><button class="btn btn-danger btn-sm" style="flex:1" onclick="delVenda('${v.id}')">Excluir</button></div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function pgVendedores() {
+  const d = window._db;
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Vendedores</div><div class="page-sub muted">${d.vendedores.length} cadastrados</div></div>
+    <div class="page-header-actions"><button class="btn btn-primary" onclick="openMV()">+ Novo</button></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap hide-mobile">
+      <table><thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Total vendido</th><th>Com. paga</th><th>A receber</th><th></th></tr></thead>
+      <tbody>${d.vendedores.length===0?`<tr><td colspan="7"><div class="empty-state">Nenhum vendedor cadastrado.</div></td></tr>`:
+        d.vendedores.map(v=>{
+          const tv=d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+(+s.valor||0),0);
+          const cr=d.vendas.filter(s=>s.vendedor===v.nome&&s.status==='Pago').reduce((a,s)=>a+(+s.com||0),0);
+          const ca=d.vendas.filter(s=>s.vendedor===v.nome&&s.status==='A Pagar').reduce((a,s)=>a+(+s.com||0),0);
+          return`<tr>
+            <td class="fw5">${v.nome}</td>
+            <td class="muted" style="font-size:12px">${v.email||'—'}</td>
+            <td class="muted" style="font-size:12px">${v.tel||'—'}</td>
+            <td class="mono blue">${R(tv)}</td>
+            <td class="mono green">${R(cr)}</td>
+            <td class="mono warn">${R(ca)}</td>
+            <td style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" onclick="openMV('${v.id}')">Editar</button>
+              <button class="btn btn-danger btn-sm" onclick="delV('${v.id}')">Remover</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody></table>
+    </div>
+    <div class="m-card-list show-mobile" style="display:none">
+      ${d.vendedores.length===0?`<div class="empty-state">Nenhum vendedor cadastrado.</div>`:
+        d.vendedores.map(v=>{
+          const tv=d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+(+s.valor||0),0);
+          const cr=d.vendas.filter(s=>s.vendedor===v.nome&&s.status==='Pago').reduce((a,s)=>a+(+s.com||0),0);
+          const ca=d.vendas.filter(s=>s.vendedor===v.nome&&s.status==='A Pagar').reduce((a,s)=>a+(+s.com||0),0);
+          return`<div class="m-card">
+            <div class="m-card-row"><span class="fw5">${v.nome}</span><span class="mono blue">${R(tv)}</span></div>
+            <div class="m-card-row"><span class="muted" style="font-size:12px">${v.email||'—'}</span></div>
+            <div class="m-card-row"><span class="badge bg">${R(cr)}</span> <span class="badge bw">${R(ca)}</span></div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn btn-sm" style="flex:1" onclick="openMV('${v.id}')">Editar</button>
+              <button class="btn btn-danger btn-sm" style="flex:1" onclick="delV('${v.id}')">Remover</button>
+            </div>
+          </div>`;
+        }).join('')}
+    </div>
+  </div>`;
+}
+
+function pgComissoes() {
+  const d = window._db;
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Tipos de comissão</div><div class="page-sub muted">${d.comissoes.length} regras</div></div>
+    <div class="page-header-actions"><button class="btn btn-primary" onclick="openMC()">+ Novo tipo</button></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap hide-mobile">
+      <table><thead><tr><th>Tipo</th><th>% Padrão</th><th>Produto específico</th><th>% por produto</th><th></th></tr></thead>
+      <tbody>${d.comissoes.length===0?`<tr><td colspan="5"><div class="empty-state">Nenhum tipo cadastrado.</div></td></tr>`:
+        d.comissoes.map(c=>`<tr>
+          <td class="fw5">${c.nome}</td>
+          <td><span class="badge bb mono">${P(c.pct)}</span></td>
+          <td class="muted">${c.prod||'—'}</td>
+          <td>${c.pctP!=null?`<span class="badge bg mono">${P(c.pctP)}</span>`:'—'}</td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="openMC('${c.id}')">Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="delC('${c.id}')">Remover</button>
+          </td>
+        </tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div class="m-card-list show-mobile" style="display:none">
+      ${d.comissoes.length===0?`<div class="empty-state">Nenhum tipo cadastrado.</div>`:
+        d.comissoes.map(c=>`<div class="m-card">
+          <div class="m-card-row"><span class="fw5">${c.nome}</span><span class="badge bb mono">${P(c.pct)}</span></div>
+          ${c.prod?`<div class="m-card-row"><span class="muted" style="font-size:12px">${c.prod}</span><span class="badge bg mono">${c.pctP!=null?P(c.pctP):'—'}</span></div>`:''}
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-sm" style="flex:1" onclick="openMC('${c.id}')">Editar</button>
+            <button class="btn btn-danger btn-sm" style="flex:1" onclick="delC('${c.id}')">Remover</button>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function pgRelatorios() {
+  const d = window._db;
+  const selV = relVend || d.vendedores[0]?.nome || '';
+  const INDS = [
+    {l:'Total de vendas',  fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&(!vd||v.vendedor===vd)).reduce((a,v)=>a+(+v.valor||0),0), fmt:R, key:'v'},
+    {l:'Qtd. de vendas',   fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&(!vd||v.vendedor===vd)).length, fmt:n=>n, key:'q'},
+    {l:'Ticket médio',     fn:(m,vd)=>{const vs=d.vendas.filter(v=>mo(v)===m&&(!vd||v.vendedor===vd));return vs.length?vs.reduce((a,v)=>a+(+v.valor||0),0)/vs.length:0}, fmt:R, key:'t'},
+    {l:'Comissões pagas',  fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&v.status==='Pago'&&(!vd||v.vendedor===vd)).reduce((a,v)=>a+(+v.com||0),0), fmt:R, key:'p'},
+    {l:'A receber',        fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&v.status==='A Pagar'&&(!vd||v.vendedor===vd)).reduce((a,v)=>a+(+v.com||0),0), fmt:R, key:'a'},
+  ];
+  function tblHTML(vd=null){
+    return `<div class="rep-wrap"><table class="rep-tbl">
+      <thead><tr><th>Indicador</th>${months.map(m=>`<th>${m}</th>`).join('')}<th class="tc">Total</th></tr></thead>
+      <tbody>${INDS.map(ind=>{
+        const vals=months.map((_,i)=>ind.fn(i+1,vd));
+        const tot=ind.key==='t'?(vals.filter(v=>v>0).length?vals.reduce((a,b)=>a+b,0)/vals.filter(v=>v>0).length:0):vals.reduce((a,b)=>a+b,0);
+        return`<tr><td>${ind.l}</td>${vals.map(v=>`<td>${ind.fmt(Math.round(v*100)/100)}</td>`).join('')}<td class="tc">${ind.fmt(Math.round(tot*100)/100)}</td></tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  }
+  function rankHTML(){
+    const data=d.vendedores.map(v=>({nome:v.nome,total:d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+(+s.valor||0),0)})).sort((a,b)=>b.total-a.total);
+    const mx=Math.max(...data.map(x=>x.total),1);
+    const fills=['#EF9F27','#B4B2A9','#97C459','#378ADD','#D4537E'];
+    return`<div class="rank-list">${data.map((x,i)=>`<div class="rank-item">
+      <div class="rank-num" style="background:${fills[i]||'#5DCAA5'};color:#fff">${i+1}</div>
+      <div class="rank-area">
+        <div class="rank-name">${x.nome}<span>${R(x.total)}</span></div>
+        <div class="rank-track"><div class="rank-fill" style="width:${Math.round(x.total/mx*100)}%;background:${fills[i]||'#5DCAA5'}"></div></div>
+      </div>
+    </div>`).join('')}</div>`;
+  }
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Relatórios</div><div class="page-sub muted">Análise de desempenho</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab ${relTab==='geral'?'active':''}" onclick="setRelTab('geral')">Geral</button>
+    <button class="tab ${relTab==='individual'?'active':''}" onclick="setRelTab('individual')">Individual</button>
+    <button class="tab ${relTab==='comparativo'?'active':''}" onclick="setRelTab('comparativo')">Ranking</button>
+  </div>
+  ${relTab==='geral'?`<div class="card"><div class="card-head"><span class="card-title">Todos os vendedores</span></div>${tblHTML()}</div>`:''}
+  ${relTab==='individual'?`
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="muted" style="font-size:13px;white-space:nowrap">Vendedor:</span>
+      <select onchange="setRelVend(this.value)" style="max-width:220px">
+        ${d.vendedores.map(v=>`<option ${v.nome===selV?'selected':''}>${v.nome}</option>`).join('')}
+      </select>
+    </div>
+    <div class="card"><div class="card-head"><span class="card-title">${selV}</span></div>${tblHTML(selV)}</div>
+  `:''}
+  ${relTab==='comparativo'?`<div class="card"><div class="card-head"><span class="card-title">Ranking por total vendido</span></div>${rankHTML()}</div>`:''}`;
+}
+
+// ── Utils ──
+function fmtDate(d) {
+  try { return new Date(d+'T12:00').toLocaleDateString('pt-BR') } catch(e) { return d||'—' }
+}
+function setRelTab(t){relTab=t;render()}
+function setRelVend(v){relVend=v;render()}
+
+// ── Modals ──
+function openOverlay(id){document.getElementById(id).classList.add('open')}
+function closeOverlay(id){document.getElementById(id).classList.remove('open')}
+window.closeOverlay = closeOverlay;
+function bgClose(e,id){if(e.target===document.getElementById(id))closeOverlay(id)}
+window.bgClose = bgClose;
+
+window.openModalVenda = function() {
+  const d = window._db;
+  document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
+  const sv=document.getElementById('f-vendedor');
+  sv.innerHTML=d.vendedores.map(v=>`<option>${v.nome}</option>`).join('');
+  const st=document.getElementById('f-tipo');
+  const tipos=[...new Set(d.comissoes.map(c=>c.nome))];
+  st.innerHTML=tipos.map(t=>`<option>${t}</option>`).join('');
+  document.getElementById('f-produto').value='';
+  document.getElementById('f-valor').value='';
+  document.getElementById('f-status').value='A Pagar';
+  calcVenda();
+  openOverlay('modal-venda');
+};
+
+window.calcVenda = function() {
+  const val=parseFloat(document.getElementById('f-valor').value)||0;
+  const tipo=document.getElementById('f-tipo')?.value||'';
+  const prod=document.getElementById('f-produto')?.value||'';
+  const r=getPct(tipo,prod);
+  document.getElementById('f-calc-val').textContent=R(val*r.val/100);
+  document.getElementById('f-calc-det').textContent=`${r.val}% · ${r.label}`;
+};
+
+window.salvarVenda = async function() {
+  const data=document.getElementById('f-data').value;
+  const vendedor=document.getElementById('f-vendedor').value;
+  const produto=document.getElementById('f-produto').value.trim();
+  const valor=parseFloat(document.getElementById('f-valor').value);
+  const tipo=document.getElementById('f-tipo').value;
+  const status=document.getElementById('f-status').value;
+  if(!data||!produto||!valor||valor<=0){toast('Preencha todos os campos.');return}
+  const r=getPct(tipo,produto);
+  const btn=document.getElementById('btn-salvar-venda');
+  btn.disabled=true; btn.textContent='Salvando...';
+  try {
+    await window._firestore.addVenda({data,produto,vendedor,valor,tipo,pct:r.val,com:Math.round(valor*r.val/100*100)/100,status});
+    closeOverlay('modal-venda');
+    toast('Venda registrada!');
+    goPage('vendas', document.querySelector('[data-page="vendas"]'));
+  } catch(e) { toast('Erro ao salvar. Tente novamente.'); }
+  btn.disabled=false; btn.textContent='Registrar venda';
+};
+
+window.toggleStatus = async function(id, cur) {
+  const novo = cur==='Pago'?'A Pagar':'Pago';
+  try { await window._firestore.updateVendaStatus(id, novo); toast('Status atualizado!'); }
+  catch(e) { toast('Erro ao atualizar.'); }
+};
+
+window.openMV = function(id=null) {
+  editVendId=id;
+  document.getElementById('mv-title').textContent=id?'Editar vendedor':'Novo vendedor';
+  const v=id?window._db.vendedores.find(v=>v.id===id):null;
+  document.getElementById('mv-nome').value=v?v.nome:'';
+  document.getElementById('mv-email').value=v?v.email:'';
+  document.getElementById('mv-tel').value=v?v.tel:'';
+  openOverlay('modal-vendedor');
+};
+
+window.salvarVendedor = async function() {
+  const nome=document.getElementById('mv-nome').value.trim();
+  const email=document.getElementById('mv-email').value.trim();
+  const tel=document.getElementById('mv-tel').value.trim();
+  if(!nome){toast('Nome obrigatório.');return}
+  const btn=document.getElementById('btn-salvar-vend');
+  btn.disabled=true; btn.textContent='Salvando...';
+  try {
+    if(editVendId) await window._firestore.updateVendedor(editVendId,{nome,email,tel});
+    else await window._firestore.addVendedor({nome,email,tel});
+    closeOverlay('modal-vendedor'); toast('Vendedor salvo!');
+  } catch(e) { toast('Erro ao salvar.'); }
+  btn.disabled=false; btn.textContent='Salvar';
+};
+
+window.delV = async function(id) {
+  if(!confirm('Remover este vendedor?')) return;
+  try { await window._firestore.deleteVendedor(id); toast('Vendedor removido.'); }
+  catch(e) { toast('Erro ao remover.'); }
+};
+
+window.openMC = function(id=null) {
+  editComId=id;
+  document.getElementById('mc-title').textContent=id?'Editar tipo':'Novo tipo de comissão';
+  const c=id?window._db.comissoes.find(c=>c.id===id):null;
+  document.getElementById('mc-nome').value=c?c.nome:'';
+  document.getElementById('mc-pct').value=c?c.pct:'';
+  document.getElementById('mc-prod').value=c?c.prod:'';
+  document.getElementById('mc-pctprod').value=c&&c.pctP!=null?c.pctP:'';
+  openOverlay('modal-comissao');
+};
+
+window.salvarComissao = async function() {
+  const nome=document.getElementById('mc-nome').value.trim();
+  const pct=parseFloat(document.getElementById('mc-pct').value);
+  const prod=document.getElementById('mc-prod').value.trim();
+  const pctPraw=document.getElementById('mc-pctprod').value;
+  const pctP=pctPraw!==''?parseFloat(pctPraw):null;
+  if(!nome||isNaN(pct)){toast('Nome e % padrão obrigatórios.');return}
+  const btn=document.getElementById('btn-salvar-com');
+  btn.disabled=true; btn.textContent='Salvando...';
+  try {
+    const payload={nome,pct,prod,pctP};
+    if(editComId) await window._firestore.updateComissao(editComId,payload);
+    else await window._firestore.addComissao(payload);
+    closeOverlay('modal-comissao'); toast('Tipo salvo!');
+  } catch(e) { toast('Erro ao salvar.'); }
+  btn.disabled=false; btn.textContent='Salvar';
+};
+
+window.delVenda = async function(id) {
+  if(!confirm('Excluir esta venda permanentemente?')) return;
+  try { await window._firestore.deleteVenda(id); toast('Venda excluída.'); }
+  catch(e) { toast('Erro ao excluir.'); }
+};
+
+window.delC = async function(id) {
+  if(!confirm('Remover este tipo?')) return;
+  try { await window._firestore.deleteComissao(id); toast('Tipo removido.'); }
+  catch(e) { toast('Erro ao remover.'); }
+};
+
+function toast(msg){
+  const t=document.createElement('div');
+  t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.transition='opacity .3s';t.style.opacity='0';setTimeout(()=>t.remove(),320)},2600);
+}
+</script>
+</body>
+</html>
