@@ -72,6 +72,13 @@ tbody tr:hover td{background:var(--s2)}
 .bw{background:rgba(245,166,35,.12);color:var(--warn);border:1px solid rgba(245,166,35,.2)}
 .bb{background:rgba(0,153,255,.12);color:var(--blue);border:1px solid rgba(0,153,255,.2)}
 .bm{background:rgba(122,128,153,.1);color:var(--muted);border:1px solid rgba(122,128,153,.15)}
+.bp{background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.2)}
+.pg-info{background:var(--s2);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:8px}
+.pg-info-row{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.pg-info-row span{color:var(--muted)}
+.pg-pagar-tudo{background:none;border:1px solid var(--bdr2);border-radius:var(--r);color:var(--muted);font-size:12px;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:14px;transition:all .15s}
+.pg-pagar-tudo:hover{color:var(--txt);border-color:var(--accent)}
+.pg-partial-detail{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--bdr2);background:var(--s2);color:var(--txt);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;-webkit-appearance:none}
 .btn:hover{background:var(--s3)}
 .btn:active{transform:scale(.97)}
@@ -304,6 +311,25 @@ select option{background:#1e2335}
   </div>
 </div>
 
+<!-- Modal: Pagamento -->
+<div class="overlay" id="modal-pagamento" onclick="bgClose(event,'modal-pagamento')">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">Registrar Pagamento</div>
+    <div class="pg-info">
+      <div class="pg-info-row"><span>Total da comissão</span><strong id="pg-total">R$ 0,00</strong></div>
+      <div class="pg-info-row"><span>Já pago</span><strong id="pg-pago" class="green">R$ 0,00</strong></div>
+      <div class="pg-info-row"><span>Saldo pendente</span><strong id="pg-pendente" style="color:var(--warn)">R$ 0,00</strong></div>
+    </div>
+    <div class="form-group"><label>Valor a pagar agora (R$)</label><input type="number" id="pg-valor" step="0.01" inputmode="decimal" placeholder="0,00" min="0.01"></div>
+    <button class="pg-pagar-tudo" onclick="pgPagarTudo()">Pagar valor total pendente</button>
+    <div class="modal-actions">
+      <button class="btn btn-full" onclick="closeOverlay('modal-pagamento')">Cancelar</button>
+      <button class="btn btn-primary btn-full" id="btn-salvar-pg" onclick="salvarPagamento()">Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Vendedor -->
 <div class="overlay" id="modal-vendedor" onclick="bgClose(event,'modal-vendedor')">
   <div class="modal">
@@ -435,6 +461,9 @@ window._firestore = {
   async updateVendaStatus(id, status) {
     return updateDoc(doc(db,'vendas',id), { status });
   },
+  async updateVendaPagamento(id, comPago, status) {
+    return updateDoc(doc(db,'vendas',id), { comPago, status });
+  },
   async deleteVenda(id) {
     return deleteDoc(doc(db,'vendas',id));
   }
@@ -466,6 +495,27 @@ function getPct(tipo, produto) {
   if(esp) return {val:+esp.pctP, label:`% especial para "${produto}"`};
   const base = db.comissoes.find(c=>c.nome===tipo);
   return base ? {val:+base.pct, label:`% padrão — ${tipo}`} : {val:0, label:'Tipo não encontrado'};
+}
+
+function getComPago(v) {
+  if (v.status === 'Pago') return +v.com || 0;
+  return +v.comPago || 0;
+}
+function getComPendente(v) {
+  if (v.status === 'Pago') return 0;
+  return Math.max(0, Math.round(((+v.com || 0) - (+v.comPago || 0)) * 100) / 100);
+}
+function statusBadgeHtml(v) {
+  if (v.status === 'Pago') return `<span class="badge bg">Pago</span>`;
+  if (v.status === 'Pago Parcial') return `<span class="badge bp">Parcial</span><div class="pg-partial-detail">Pago ${R(getComPago(v))}<br>Pend. ${R(getComPendente(v))}</div>`;
+  return `<span class="badge bw">A Pagar</span>`;
+}
+function statusBtnHtml(v) {
+  const id = v.id;
+  const s = v.status;
+  if (s === 'Pago') return `<button class="btn btn-ghost btn-sm" onclick="toggleStatus('${id}','${s}')">Estornar</button>`;
+  if (s === 'Pago Parcial') return `<button class="btn btn-ghost btn-sm" onclick="openModalPagamento('${id}')">Complementar</button><button class="btn btn-ghost btn-sm" onclick="toggleStatus('${id}','${s}')">Estornar</button>`;
+  return `<button class="btn btn-ghost btn-sm" onclick="openModalPagamento('${id}')">Registrar pagamento</button>`;
 }
 
 // ── Nav ──
@@ -520,9 +570,9 @@ window.render = function() {
 function pgDashboard() {
   const d = window._db;
   const totV = d.vendas.reduce((a,v)=>a+(+v.valor||0),0);
-  const comPg = d.vendas.filter(v=>v.status==='Pago').reduce((a,v)=>a+(+v.com||0),0);
-  const comAr = d.vendas.filter(v=>v.status==='A Pagar').reduce((a,v)=>a+(+v.com||0),0);
-  const bars = months.map((_,i)=>d.vendas.filter(v=>mo(v)===i+1&&v.status==='Pago').reduce((a,v)=>a+(+v.com||0),0));
+  const comPg = d.vendas.reduce((a,v)=>a+getComPago(v),0);
+  const comAr = d.vendas.reduce((a,v)=>a+getComPendente(v),0);
+  const bars = months.map((_,i)=>d.vendas.filter(v=>mo(v)===i+1).reduce((a,v)=>a+getComPago(v),0));
   const mx = Math.max(...bars,1);
   const recent = d.vendas.slice(0,5);
   return `
@@ -557,14 +607,14 @@ function pgDashboard() {
           <td class="fw5">${v.vendedor}</td><td>${v.produto}</td>
           <td class="mono">${R(v.valor)}</td>
           <td class="mono green fw5">${R(v.com)}</td>
-          <td><span class="badge ${v.status==='Pago'?'bg':'bw'}">${v.status}</span></td>
+          <td>${statusBadgeHtml(v)}</td>
         </tr>`).join('')}
       </tbody></table>
     </div>
     <div class="m-card-list show-mobile" style="display:none">
       ${recent.length===0?`<div class="empty-state">Nenhuma venda ainda.</div>`:
         recent.map(v=>`<div class="m-card">
-          <div class="m-card-row"><span class="fw5">${v.vendedor}</span><span class="badge ${v.status==='Pago'?'bg':'bw'}">${v.status}</span></div>
+          <div class="m-card-row"><span class="fw5">${v.vendedor}</span>${statusBadgeHtml(v)}</div>
           <div class="m-card-row"><span class="muted">${v.produto}</span><span class="mono green fw5">${R(v.com)}</span></div>
           <div class="m-card-row"><span class="muted mono" style="font-size:11px">${fmtDate(v.data)}</span><span class="mono muted">${R(v.valor)}</span></div>
         </div>`).join('')}
@@ -590,18 +640,18 @@ function pgVendas() {
           <td><span class="badge bm" style="font-size:10px">${v.tipo}</span></td>
           <td class="mono muted">${P(v.pct)}</td>
           <td class="mono green fw5">${R(v.com)}</td>
-          <td><span class="badge ${v.status==='Pago'?'bg':'bw'}">${v.status}</span></td>
-          <td style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="toggleStatus('${v.id}','${v.status}')">${v.status==='Pago'?'Estornar':'Marcar pago'}</button><button class="btn btn-danger btn-sm" onclick="delVenda('${v.id}')">Excluir</button></td>
+          <td>${statusBadgeHtml(v)}</td>
+          <td style="display:flex;gap:6px">${statusBtnHtml(v)}<button class="btn btn-danger btn-sm" onclick="delVenda('${v.id}')">Excluir</button></td>
         </tr>`).join('')}
       </tbody></table>
     </div>
     <div class="m-card-list show-mobile" style="display:none">
       ${d.vendas.length===0?`<div class="empty-state">Nenhuma venda registrada.</div>`:
         d.vendas.map(v=>`<div class="m-card">
-          <div class="m-card-row"><span class="fw5">${v.vendedor}</span><span class="badge ${v.status==='Pago'?'bg':'bw'}">${v.status}</span></div>
+          <div class="m-card-row"><span class="fw5">${v.vendedor}</span>${statusBadgeHtml(v)}</div>
           <div class="m-card-row"><span class="muted">${v.produto} · <span class="badge bm" style="font-size:10px">${v.tipo}</span></span><span class="mono green fw5">${R(v.com)}</span></div>
           <div class="m-card-row"><span class="muted mono" style="font-size:11px">${fmtDate(v.data)} · ${P(v.pct)}</span><span class="mono" style="font-size:12px">${R(v.valor)}</span></div>
-          <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-sm" style="flex:1" onclick="toggleStatus('${v.id}','${v.status}')">${v.status==='Pago'?'Estornar':'Marcar pago'}</button><button class="btn btn-danger btn-sm" style="flex:1" onclick="delVenda('${v.id}')">Excluir</button></div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${statusBtnHtml(v)}<button class="btn btn-danger btn-sm" style="flex:1" onclick="delVenda('${v.id}')">Excluir</button></div>
         </div>`).join('')}
     </div>
   </div>`;
@@ -620,8 +670,8 @@ function pgVendedores() {
       <tbody>${d.vendedores.length===0?`<tr><td colspan="7"><div class="empty-state">Nenhum vendedor cadastrado.</div></td></tr>`:
         d.vendedores.map(v=>{
           const tv=d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+(+s.valor||0),0);
-          const cr=d.vendas.filter(s=>s.vendedor===v.nome&&s.status==='Pago').reduce((a,s)=>a+(+s.com||0),0);
-          const ca=d.vendas.filter(s=>s.vendedor===v.nome&&s.status==='A Pagar').reduce((a,s)=>a+(+s.com||0),0);
+          const cr=d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+getComPago(s),0);
+          const ca=d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+getComPendente(s),0);
           return`<tr>
             <td class="fw5">${v.nome}</td>
             <td class="muted" style="font-size:12px">${v.email||'—'}</td>
@@ -641,8 +691,8 @@ function pgVendedores() {
       ${d.vendedores.length===0?`<div class="empty-state">Nenhum vendedor cadastrado.</div>`:
         d.vendedores.map(v=>{
           const tv=d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+(+s.valor||0),0);
-          const cr=d.vendas.filter(s=>s.vendedor===v.nome&&s.status==='Pago').reduce((a,s)=>a+(+s.com||0),0);
-          const ca=d.vendas.filter(s=>s.vendedor===v.nome&&s.status==='A Pagar').reduce((a,s)=>a+(+s.com||0),0);
+          const cr=d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+getComPago(s),0);
+          const ca=d.vendas.filter(s=>s.vendedor===v.nome).reduce((a,s)=>a+getComPendente(s),0);
           return`<div class="m-card">
             <div class="m-card-row"><span class="fw5">${v.nome}</span><span class="mono blue">${R(tv)}</span></div>
             <div class="m-card-row"><span class="muted" style="font-size:12px">${v.email||'—'}</span></div>
@@ -701,8 +751,8 @@ function pgRelatorios() {
     {l:'Total de vendas',  fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&(!vd||v.vendedor===vd)).reduce((a,v)=>a+(+v.valor||0),0), fmt:R, key:'v'},
     {l:'Qtd. de vendas',   fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&(!vd||v.vendedor===vd)).length, fmt:n=>n, key:'q'},
     {l:'Ticket médio',     fn:(m,vd)=>{const vs=d.vendas.filter(v=>mo(v)===m&&(!vd||v.vendedor===vd));return vs.length?vs.reduce((a,v)=>a+(+v.valor||0),0)/vs.length:0}, fmt:R, key:'t'},
-    {l:'Comissões pagas',  fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&v.status==='Pago'&&(!vd||v.vendedor===vd)).reduce((a,v)=>a+(+v.com||0),0), fmt:R, key:'p'},
-    {l:'A receber',        fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&v.status==='A Pagar'&&(!vd||v.vendedor===vd)).reduce((a,v)=>a+(+v.com||0),0), fmt:R, key:'a'},
+    {l:'Comissões pagas',  fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&(!vd||v.vendedor===vd)).reduce((a,v)=>a+getComPago(v),0), fmt:R, key:'p'},
+    {l:'A receber',        fn:(m,vd)=>d.vendas.filter(v=>mo(v)===m&&(!vd||v.vendedor===vd)).reduce((a,v)=>a+getComPendente(v),0), fmt:R, key:'a'},
   ];
   function tblHTML(vd=null){
     return `<div class="rep-wrap"><table class="rep-tbl">
@@ -806,7 +856,8 @@ window.salvarVenda = async function() {
   const btn=document.getElementById('btn-salvar-venda');
   btn.disabled=true; btn.textContent='Salvando...';
   try {
-    await window._firestore.addVenda({data,produto,vendedor,valor,tipo,pct:r.val,com,status});
+    const comPago = status === 'Pago' ? com : 0;
+    await window._firestore.addVenda({data,produto,vendedor,valor,tipo,pct:r.val,com,comPago,status});
     closeOverlay('modal-venda');
     toast('Venda registrada!');
     goPage('vendas', document.querySelector('[data-page="vendas"]'));
@@ -815,9 +866,55 @@ window.salvarVenda = async function() {
 };
 
 window.toggleStatus = async function(id, cur) {
-  const novo = cur==='Pago'?'A Pagar':'Pago';
-  try { await window._firestore.updateVendaStatus(id, novo); toast('Status atualizado!'); }
-  catch(e) { toast('Erro ao atualizar.'); }
+  if (cur === 'Pago' || cur === 'Pago Parcial') {
+    if (!confirm('Estornar o pagamento desta comissão?')) return;
+    try { await window._firestore.updateVendaPagamento(id, 0, 'A Pagar'); toast('Pagamento estornado!'); }
+    catch(e) { toast('Erro ao estornar.'); }
+  } else {
+    openModalPagamento(id);
+  }
+};
+
+window._pagId = null;
+
+window.openModalPagamento = function(id) {
+  const v = window._db.vendas.find(x => x.id === id);
+  if (!v) return;
+  window._pagId = id;
+  const pago = getComPago(v);
+  const pendente = getComPendente(v);
+  document.getElementById('pg-total').textContent = R(+v.com || 0);
+  document.getElementById('pg-pago').textContent = R(pago);
+  document.getElementById('pg-pendente').textContent = R(pendente);
+  document.getElementById('pg-valor').value = '';
+  openOverlay('modal-pagamento');
+};
+
+window.pgPagarTudo = function() {
+  const v = window._db.vendas.find(x => x.id === window._pagId);
+  if (!v) return;
+  document.getElementById('pg-valor').value = getComPendente(v).toFixed(2);
+};
+
+window.salvarPagamento = async function() {
+  const id = window._pagId;
+  const v = window._db.vendas.find(x => x.id === id);
+  if (!v) return;
+  const valorInput = parseFloat(document.getElementById('pg-valor').value);
+  if (!valorInput || valorInput <= 0) { toast('Informe o valor pago.'); return; }
+  const pendente = getComPendente(v);
+  if (valorInput > pendente + 0.005) { toast('Valor maior que o saldo pendente (' + R(pendente) + ').'); return; }
+  const novoComPago = Math.round((getComPago(v) + valorInput) * 100) / 100;
+  const comTotal = +v.com || 0;
+  const novoStatus = novoComPago >= comTotal - 0.005 ? 'Pago' : 'Pago Parcial';
+  const btn = document.getElementById('btn-salvar-pg');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    await window._firestore.updateVendaPagamento(id, novoComPago, novoStatus);
+    closeOverlay('modal-pagamento');
+    toast(novoStatus === 'Pago' ? 'Comissão quitada!' : 'Pagamento parcial registrado!');
+  } catch(e) { toast('Erro ao registrar pagamento.'); }
+  btn.disabled = false; btn.textContent = 'Confirmar pagamento';
 };
 
 window.openMV = function(id=null) {
